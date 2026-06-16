@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#10142a">
-  <meta name="description" content="Caximba Clash — batalha local 1v1 no mesmo computador, criada para o servidor CPX.">
+  <meta name="description" content="Caximba Clash — batalha local 1v1 com posicionamento livre de tropas no mesmo computador, criada para o servidor CPX.">
   <title>Caximba Clash</title>
-  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect rx='20' width='100' height='100' fill='%23101a35'/%3E%3Cpath d='M17 65 25 29l18 17 8-28 9 28 18-17 7 36z' fill='%23ffcc50'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='20' font-family='Arial' font-weight='900' fill='white'%3ECPX%3C/text%3E%3C/svg%3E" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -82,7 +82,7 @@
       </main>
 
       <footer class="menu-footer">
-        <span>Versão local 1.0.0</span>
+        <span>Versão local 2.0.0</span>
         <span>Feito para o Complexo do Caximba</span>
       </footer>
     </section>
@@ -151,7 +151,7 @@
 
         <button id="startBattleButton" class="primary-button primary-button--wide">
           <span class="primary-button__icon">⚡</span>
-          <span><strong>Entrar na arena</strong><small>Os dois jogadores podem jogar ao mesmo tempo</small></span>
+          <span><strong>Entrar na arena</strong><small>Escolha uma carta e clique no mapa para posicionar</small></span>
         </button>
       </main>
     </section>
@@ -243,18 +243,18 @@
             <span class="keycap">7</span><span class="keycap">8</span><span class="keycap">9</span><span class="keycap">0</span>
           </div>
           <h3>Dois jogadores, um teclado</h3>
-          <p>Os dois lados jogam simultaneamente. Escolha cartas, troque a rota e solte tropas sem esperar turno.</p>
+          <p>Os dois lados jogam em tempo real. Clique em uma carta e depois clique em qualquer ponto permitido do seu território para colocar a tropa.</p>
         </article>
         <div class="tutorial-grid">
           <article class="tutorial-card tutorial-card--blue">
             <span class="tutorial-card__number">1</span>
             <h4>Controles do Jogador 1</h4>
-            <p><kbd>Q W E R</kbd> escolhem uma carta. <kbd>A</kbd> e <kbd>D</kbd> mudam a ponte. <kbd>S</kbd> coloca a tropa.</p>
+            <p>Clique em uma das quatro cartas do Jogador 1 e depois clique na parte azul, abaixo do rio. <kbd>Q W E R</kbd> também selecionam as cartas.</p>
           </article>
           <article class="tutorial-card tutorial-card--red">
             <span class="tutorial-card__number">2</span>
             <h4>Controles do Jogador 2</h4>
-            <p><kbd>7 8 9 0</kbd> escolhem uma carta. <kbd>←</kbd> e <kbd>→</kbd> mudam a ponte. <kbd>Enter</kbd> coloca a tropa.</p>
+            <p>Clique em uma das quatro cartas do Jogador 2 e depois clique na parte vermelha, acima do rio. <kbd>7 8 9 0</kbd> também selecionam as cartas.</p>
           </article>
           <article class="tutorial-card">
             <span class="tutorial-card__number">3</span>
@@ -362,11 +362,11 @@
           </div>
           <div id="handTwo" class="battle-hand"></div>
           <div class="lane-control lane-control--two">
-            <button data-lane-player="2" data-lane="left">← Esquerda</button>
-            <strong id="laneLabelTwo">Ponte esquerda</strong>
-            <button data-lane-player="2" data-lane="right">Direita →</button>
+            <button data-lane-player="2" data-lane="left">← Ponto rápido</button>
+            <strong id="laneLabelTwo">Escolha uma carta e clique no mapa.</strong>
+            <button data-lane-player="2" data-lane="right">Ponto rápido →</button>
           </div>
-          <button id="deployTwoButton" class="deploy-button deploy-button--two">Jogar carta <kbd>Enter</kbd></button>
+          <button id="deployTwoButton" class="deploy-button deploy-button--two">Jogar no ponto marcado <kbd>Enter</kbd></button>
         </aside>
 
         <section class="arena-wrap">
@@ -384,11 +384,11 @@
           </div>
           <div id="handOne" class="battle-hand"></div>
           <div class="lane-control lane-control--one">
-            <button data-lane-player="1" data-lane="left">← Esquerda</button>
-            <strong id="laneLabelOne">Ponte esquerda</strong>
-            <button data-lane-player="1" data-lane="right">Direita →</button>
+            <button data-lane-player="1" data-lane="left">← Ponto rápido</button>
+            <strong id="laneLabelOne">Escolha uma carta e clique no mapa.</strong>
+            <button data-lane-player="1" data-lane="right">Ponto rápido →</button>
           </div>
-          <button id="deployOneButton" class="deploy-button deploy-button--one">Jogar carta <kbd>S</kbd></button>
+          <button id="deployOneButton" class="deploy-button deploy-button--one">Jogar no ponto marcado <kbd>S</kbd></button>
         </aside>
       </main>
     </section>
@@ -428,6 +428,7 @@
     </div>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <script src="data.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
