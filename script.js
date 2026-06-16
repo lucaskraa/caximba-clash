@@ -1,4 +1,12 @@
-import {
+'use strict';
+
+const CAXIMBA_DATA = window.CAXIMBA_DATA;
+
+if (!CAXIMBA_DATA) {
+  throw new Error('data.js não foi carregado. Mantenha data.js na mesma pasta do index.html.');
+}
+
+const {
   CARDS,
   CARD_RARITIES,
   TOKEN_BLUEPRINTS,
@@ -10,7 +18,7 @@ import {
   validateDeck,
   randomDeck,
   sortCards
-} from './data.js';
+} = CAXIMBA_DATA;
 
 const STORAGE_KEYS = {
   settings: 'caximbaClash.settings.v1',
@@ -279,20 +287,24 @@ function uid(prefix = 'id') {
 uid.counter = 0;
 
 function loadStorage(key, fallback) {
-  const stored = localStorage.getItem(key);
-  if (!stored) {
+  try {
+    const stored = window.localStorage?.getItem(key);
+    if (!stored) {
+      return deepClone(fallback);
+    }
+    const parsed = safeJsonParse(stored, null);
+    if (parsed === null) {
+      return deepClone(fallback);
+    }
+    return parsed;
+  } catch {
     return deepClone(fallback);
   }
-  const parsed = safeJsonParse(stored, null);
-  if (parsed === null) {
-    return deepClone(fallback);
-  }
-  return parsed;
 }
 
 function saveStorage(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    window.localStorage?.setItem(key, JSON.stringify(value));
     return true;
   } catch {
     return false;
@@ -1227,6 +1239,13 @@ class BattleGame {
     this.announcementTimer = 0;
     this.nextSecondTick = null;
     this.result = null;
+    this.placement = {
+      activePlayer: null,
+      hoverX: ARENA.centerX,
+      hoverY: ARENA.centerY,
+      valid: false,
+      pointerInside: false
+    };
     this.boundLoop = (timestamp) => this.loop(timestamp);
   }
 
@@ -1274,6 +1293,11 @@ class BattleGame {
     this.announcementTimer = 0;
     this.nextSecondTick = null;
     this.result = null;
+    this.placement.activePlayer = null;
+    this.placement.hoverX = ARENA.centerX;
+    this.placement.hoverY = ARENA.centerY;
+    this.placement.valid = false;
+    this.placement.pointerInside = false;
     this.setupPlayers();
     this.setupTowers();
     this.syncBattleHeader();
@@ -1311,6 +1335,8 @@ class BattleGame {
         queueIndex: 4,
         selectedIndex: 0,
         lane: 'left',
+        spawnX: ARENA.laneX.left,
+        spawnY: ARENA.spawnY[playerId],
         elixir: this.config.initialElixir,
         maxElixir: 10,
         crowns: 0,
@@ -2436,8 +2462,32 @@ class BattleGame {
   }
 
   updateLaneLabels() {
-    dom.laneLabelOne.textContent = this.players[1].lane === 'left' ? 'Ponte esquerda' : 'Ponte direita';
-    dom.laneLabelTwo.textContent = this.players[2].lane === 'left' ? 'Ponte esquerda' : 'Ponte direita';
+    this.updatePlacementStatus();
+  }
+
+  updatePlacementStatus() {
+    if (!this.players[1] || !this.players[2]) {
+      return;
+    }
+    const active = this.placement.activePlayer;
+    const statusOne = active === 1
+      ? 'Carta selecionada: clique em qualquer ponto azul do mapa.'
+      : 'Escolha uma carta e depois clique no seu lado do mapa.';
+    const statusTwo = active === 2
+      ? 'Carta selecionada: clique em qualquer ponto vermelho do mapa.'
+      : 'Escolha uma carta e depois clique no seu lado do mapa.';
+    if (dom.laneLabelOne) {
+      dom.laneLabelOne.textContent = statusOne;
+    }
+    if (dom.laneLabelTwo) {
+      dom.laneLabelTwo.textContent = statusTwo;
+    }
+    const arena = this.canvas?.closest('.arena-wrap');
+    if (arena) {
+      arena.classList.toggle('arena-wrap--placing-one', active === 1);
+      arena.classList.toggle('arena-wrap--placing-two', active === 2);
+      arena.dataset.placingPlayer = active ? String(active) : '';
+    }
   }
 
   updateElixirDisplay(playerId) {
@@ -2454,8 +2504,157 @@ class BattleGame {
       return;
     }
     player.selectedIndex = index;
-    this.renderHand(playerId);
+    this.placement.activePlayer = playerId;
+    this.placement.hoverX = player.spawnX;
+    this.placement.hoverY = player.spawnY;
+    this.placement.valid = this.isPlacementValid(playerId, player.spawnX, player.spawnY);
+    this.renderHands();
+    this.updatePlacementStatus();
+    const card = getCard(player.hand[index]);
+    if (card) {
+      toast(
+        `${card.shortName || card.name} selecionado`,
+        `Jogador ${playerId}: clique no seu território para posicionar.`,
+        playerId === 1 ? 'info' : 'warning',
+        1350
+      );
+    }
     audio.select(playerId);
+  }
+
+  clearPlacement() {
+    this.placement.activePlayer = null;
+    this.placement.valid = false;
+    this.placement.pointerInside = false;
+    if (this.players[1] && this.players[2]) {
+      this.renderHands();
+    }
+    this.updatePlacementStatus();
+  }
+
+  getPlacementBounds(playerId) {
+    const margin = 62;
+    if (playerId === 1) {
+      return {
+        minX: margin,
+        maxX: ARENA.width - margin,
+        minY: ARENA.riverBottom + 50,
+        maxY: ARENA.height - 105
+      };
+    }
+    return {
+      minX: margin,
+      maxX: ARENA.width - margin,
+      minY: 105,
+      maxY: ARENA.riverTop - 50
+    };
+  }
+
+  isPlacementValid(playerId, x, y) {
+    if (![1, 2].includes(playerId) || !Number.isFinite(x) || !Number.isFinite(y)) {
+      return false;
+    }
+    const bounds = this.getPlacementBounds(playerId);
+    if (x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY) {
+      return false;
+    }
+    const blockingTower = this.towers.find((tower) => {
+      if (!tower.alive || tower.playerId !== playerId) {
+        return false;
+      }
+      return Math.hypot(tower.x - x, tower.y - y) < tower.radius + 52;
+    });
+    return !blockingTower;
+  }
+
+  clampPlacement(playerId, x, y) {
+    const bounds = this.getPlacementBounds(playerId);
+    return {
+      x: clamp(x, bounds.minX, bounds.maxX),
+      y: clamp(y, bounds.minY, bounds.maxY)
+    };
+  }
+
+  eventToArenaPoint(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return null;
+    }
+    return {
+      x: (event.clientX - rect.left) / rect.width * ARENA.width,
+      y: (event.clientY - rect.top) / rect.height * ARENA.height
+    };
+  }
+
+  handleArenaPointerMove(event) {
+    if (!this.running || this.ended || this.paused) {
+      return;
+    }
+    const point = this.eventToArenaPoint(event);
+    if (!point) {
+      return;
+    }
+    this.placement.pointerInside = true;
+    this.placement.hoverX = point.x;
+    this.placement.hoverY = point.y;
+    const playerId = this.placement.activePlayer;
+    this.placement.valid = playerId ? this.isPlacementValid(playerId, point.x, point.y) : false;
+    if (playerId) {
+      this.players[playerId].spawnX = point.x;
+      this.players[playerId].spawnY = point.y;
+      this.players[playerId].lane = point.x < ARENA.centerX ? 'left' : 'right';
+    }
+  }
+
+  handleArenaPointerLeave() {
+    this.placement.pointerInside = false;
+  }
+
+  handleArenaPointerDown(event) {
+    if (!this.running || this.paused || this.ended) {
+      return;
+    }
+    event.preventDefault();
+    const playerId = this.placement.activePlayer;
+    if (!playerId) {
+      const point = this.eventToArenaPoint(event);
+      if (!point) {
+        return;
+      }
+      const suggested = point.y < ARENA.centerY ? 2 : 1;
+      toast(
+        `Jogador ${suggested}`,
+        'Escolha uma carta primeiro e depois clique no mapa.',
+        'info',
+        1500
+      );
+      audio.error();
+      return;
+    }
+    const point = this.eventToArenaPoint(event);
+    if (!point) {
+      return;
+    }
+    this.placement.hoverX = point.x;
+    this.placement.hoverY = point.y;
+    this.placement.valid = this.isPlacementValid(playerId, point.x, point.y);
+    if (!this.placement.valid) {
+      const bounds = this.getPlacementBounds(playerId);
+      const side = playerId === 1 ? 'parte azul, abaixo do rio' : 'parte vermelha, acima do rio';
+      this.addFloater(
+        clamp(point.x, 80, ARENA.width - 80),
+        clamp(point.y, 100, ARENA.height - 100),
+        'LOCAL INVÁLIDO',
+        '#ff758c',
+        0.85
+      );
+      toast(`Jogador ${playerId}`, `Posicione na ${side} e longe das próprias torres.`, 'warning', 1800);
+      audio.error();
+      this.placement.hoverX = clamp(point.x, bounds.minX, bounds.maxX);
+      this.placement.hoverY = clamp(point.y, bounds.minY, bounds.maxY);
+      return;
+    }
+    this.deployAt(playerId, point.x, point.y);
   }
 
   setLane(playerId, lane) {
@@ -2464,7 +2663,13 @@ class BattleGame {
       return;
     }
     player.lane = lane;
-    this.updateLaneLabels();
+    player.spawnX = ARENA.laneX[lane];
+    player.spawnY = ARENA.spawnY[playerId];
+    this.placement.activePlayer = playerId;
+    this.placement.hoverX = player.spawnX;
+    this.placement.hoverY = player.spawnY;
+    this.placement.valid = true;
+    this.updatePlacementStatus();
     audio.select(playerId);
   }
 
@@ -2474,17 +2679,24 @@ class BattleGame {
       return;
     }
     if (direction === 'left') {
-      player.lane = 'left';
+      this.setLane(playerId, 'left');
     } else if (direction === 'right') {
-      player.lane = 'right';
+      this.setLane(playerId, 'right');
     } else {
-      player.lane = player.lane === 'left' ? 'right' : 'left';
+      this.setLane(playerId, player.lane === 'left' ? 'right' : 'left');
     }
-    this.updateLaneLabels();
-    audio.select(playerId);
   }
 
   deploySelected(playerId) {
+    const player = this.players[playerId];
+    if (!player) {
+      return false;
+    }
+    const point = this.clampPlacement(playerId, player.spawnX, player.spawnY);
+    return this.deployAt(playerId, point.x, point.y);
+  }
+
+  deployAt(playerId, x, y) {
     if (!this.running || this.paused || this.ended || !this.matchStarted) {
       if (!this.matchStarted && this.running) {
         audio.error();
@@ -2497,29 +2709,32 @@ class BattleGame {
     if (!card) {
       return false;
     }
+    if (!this.isPlacementValid(playerId, x, y)) {
+      audio.error();
+      return false;
+    }
     if (player.elixir + 0.0001 < card.cost) {
       audio.error();
-      this.addFloater(
-        player.lane === 'left' ? ARENA.laneX.left : ARENA.laneX.right,
-        playerId === 1 ? ARENA.spawnY[1] : ARENA.spawnY[2],
-        'SEM ENERGIA',
-        '#ff92a3',
-        0.8
-      );
+      this.addFloater(x, y, 'SEM ENERGIA', '#ff92a3', 0.8);
       toast(`Jogador ${playerId}`, 'Energia insuficiente para essa carta.', 'warning', 1700);
       return false;
     }
     if (this.elapsed - player.lastDeployAt < 0.16) {
       return false;
     }
+    const lane = x < ARENA.centerX ? 'left' : 'right';
+    player.lane = lane;
+    player.spawnX = x;
+    player.spawnY = y;
     player.lastDeployAt = this.elapsed;
     player.elixir = clamp(player.elixir - card.cost, 0, 10);
     player.deployments += 1;
     this.totalDeployments += 1;
-    this.spawnCard(card, playerId, player.lane);
+    this.spawnCard(card, playerId, lane, x, y);
     this.cycleHand(playerId, player.selectedIndex);
     this.updateElixirDisplay(playerId);
     this.updateHandsAffordability();
+    this.clearPlacement();
     audio.deploy(playerId);
     vibrate(20);
     return true;
@@ -2533,9 +2748,10 @@ class BattleGame {
     this.renderHand(playerId);
   }
 
-  spawnCard(card, playerId, lane) {
-    const baseX = ARENA.laneX[lane];
-    const baseY = ARENA.spawnY[playerId];
+  spawnCard(card, playerId, lane, spawnX = ARENA.laneX[lane], spawnY = ARENA.spawnY[playerId]) {
+    const bounds = this.getPlacementBounds(playerId);
+    const baseX = clamp(spawnX, bounds.minX, bounds.maxX);
+    const baseY = clamp(spawnY, bounds.minY, bounds.maxY);
     this.addArenaRing(baseX, baseY, PLAYER_COLORS[playerId].light, 100, 0.62);
     this.emitParticles(baseX, baseY, PLAYER_COLORS[playerId].light, 17, 150, 0.72);
     if (card.special === 'familySquad') {
@@ -2694,11 +2910,11 @@ class BattleGame {
       const card = getCard(cardId);
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `battle-card${player.selectedIndex === index ? ' battle-card--selected' : ''}`;
+      button.className = `battle-card${this.placement.activePlayer === playerId && player.selectedIndex === index ? ' battle-card--selected' : ''}`;
       button.dataset.playerId = String(playerId);
       button.dataset.index = String(index);
       button.innerHTML = `
-        <img class="battle-card__image" src="${card.portrait}" alt="${escapeHtml(card.name)}">
+        <img class="battle-card__image" src="${card.image}" alt="${escapeHtml(card.name)}">
         <span class="battle-card__shade"></span>
         <span class="battle-card__cost">${card.cost}</span>
         <span class="battle-card__key">${keys[index]}</span>
@@ -2924,25 +3140,111 @@ class BattleGame {
   }
 
   drawDeploymentHints(ctx) {
-    if (!this.running || this.ended || this.paused) {
+    if (!this.running || this.ended) {
       return;
     }
-    [1, 2].forEach((playerId) => {
-      const player = this.players[playerId];
-      const x = ARENA.laneX[player.lane];
-      const y = ARENA.spawnY[playerId];
-      const color = PLAYER_COLORS[playerId];
-      ctx.save();
-      ctx.globalAlpha = 0.2 + Math.sin(this.elapsed * 4) * 0.04;
-      ctx.strokeStyle = color.light;
-      ctx.fillStyle = color.glow;
-      ctx.lineWidth = 4;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 23px Inter, sans-serif';
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = PLAYER_COLORS[2].light;
+    ctx.fillText('TERRITÓRIO DO JOGADOR 2', ARENA.centerX, 470);
+    ctx.fillStyle = PLAYER_COLORS[1].light;
+    ctx.fillText('TERRITÓRIO DO JOGADOR 1', ARENA.centerX, 1030);
+    ctx.restore();
+
+    const playerId = this.placement.activePlayer;
+    if (!playerId || this.paused) {
+      return;
+    }
+    const bounds = this.getPlacementBounds(playerId);
+    const color = PLAYER_COLORS[playerId];
+    ctx.save();
+    const territoryGradient = playerId === 1
+      ? ctx.createLinearGradient(0, bounds.minY, 0, bounds.maxY)
+      : ctx.createLinearGradient(0, bounds.maxY, 0, bounds.minY);
+    territoryGradient.addColorStop(0, color.glow.replace('0.55', '0.08'));
+    territoryGradient.addColorStop(1, color.glow.replace('0.55', '0.24'));
+    ctx.fillStyle = territoryGradient;
+    ctx.fillRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
+    ctx.strokeStyle = color.light;
+    ctx.lineWidth = 5;
+    ctx.setLineDash([18, 12]);
+    ctx.strokeRect(bounds.minX, bounds.minY, bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.9;
+    ctx.font = '1000 25px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    const instructionY = playerId === 1 ? bounds.minY + 45 : bounds.maxY - 45;
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.strokeText('CLIQUE PARA POSICIONAR', ARENA.centerX, instructionY);
+    ctx.fillText('CLIQUE PARA POSICIONAR', ARENA.centerX, instructionY);
+    ctx.restore();
+
+    const x = this.placement.hoverX;
+    const y = this.placement.hoverY;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return;
+    }
+    const valid = this.isPlacementValid(playerId, x, y);
+    const player = this.players[playerId];
+    const card = player ? getCard(player.hand[player.selectedIndex]) : null;
+    const pulse = 1 + Math.sin(this.elapsed * 8) * 0.06;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(pulse, pulse);
+    ctx.globalAlpha = this.placement.pointerInside ? 0.9 : 0.55;
+    ctx.fillStyle = valid ? color.glow : 'rgba(255, 54, 84, 0.32)';
+    ctx.strokeStyle = valid ? color.light : '#ff3d5f';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(0, 0, 68, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (card) {
+      const image = getCachedImage(card.portrait);
+      if (image) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, 52, 0, Math.PI * 2);
+        ctx.clip();
+        const source = Math.min(image.width, image.height);
+        ctx.drawImage(
+          image,
+          (image.width - source) / 2,
+          (image.height - source) / 2,
+          source,
+          source,
+          -52,
+          -52,
+          104,
+          104
+        );
+        ctx.restore();
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = 'rgba(0,0,0,0.72)';
+      ctx.lineWidth = 6;
+      ctx.font = '1000 18px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.strokeText(card.shortName || card.name, 0, 92);
+      ctx.fillText(card.shortName || card.name, 0, 92);
+    }
+    if (!valid) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(x, y, 62 + Math.sin(this.elapsed * 5) * 5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(-28, -28);
+      ctx.lineTo(28, 28);
+      ctx.moveTo(28, -28);
+      ctx.lineTo(-28, 28);
       ctx.stroke();
-      ctx.restore();
-    });
+    }
+    ctx.restore();
   }
 
   drawTowers(ctx) {
@@ -3404,6 +3706,10 @@ function bindModals() {
 
 function bindBattleControls() {
   dom.pauseButton.addEventListener('click', () => battle.pause());
+  dom.gameCanvas.addEventListener('pointermove', (event) => battle.handleArenaPointerMove(event));
+  dom.gameCanvas.addEventListener('pointerleave', () => battle.handleArenaPointerLeave());
+  dom.gameCanvas.addEventListener('pointerdown', (event) => battle.handleArenaPointerDown(event));
+  dom.gameCanvas.addEventListener('contextmenu', (event) => event.preventDefault());
   dom.deployOneButton.addEventListener('click', () => battle.deploySelected(1));
   dom.deployTwoButton.addEventListener('click', () => battle.deploySelected(2));
   document.querySelectorAll('[data-lane-player]').forEach((button) => {
