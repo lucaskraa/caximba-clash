@@ -1,437 +1,125 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#10142a">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta name="description" content="Caximba Clash — batalha local 1v1 com posicionamento livre de tropas no mesmo computador, criada para o servidor CPX.">
-  <title>Caximba Clash</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect rx='20' width='100' height='100' fill='%23101a35'/%3E%3Cpath d='M17 65 25 29l18 17 8-28 9 28 18-17 7 36z' fill='%23ffcc50'/%3E%3Ctext x='50' y='88' text-anchor='middle' font-size='20' font-family='Arial' font-weight='900' fill='white'%3ECPX%3C/text%3E%3C/svg%3E" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=5.2">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#071022">
+  <meta name="description" content="Caximba Clash — duelo local 1v1 do Complexo do Caximba.">
+  <title>Caximba Clash V6</title>
+  <link rel="stylesheet" href="style.css?v=6.0.0">
 </head>
 <body>
-  <div id="app" class="app-shell">
-    <div id="toastHost" class="toast-host" aria-live="polite"></div>
-
-    <section id="splashScreen" class="screen screen--active splash-screen" aria-label="Carregando Caximba Clash">
-      <div class="splash-backdrop"></div>
-      <div class="splash-particles" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
+  <div id="app" class="app">
+    <section id="splashScreen" class="screen screen--active splash-screen" aria-label="Carregamento">
       <div class="splash-card">
-        <div class="brand-crown">♛</div>
-        <div class="brand-kicker">CPX apresenta</div>
-        <h1 class="brand-title">Caximba <strong>Clash</strong></h1>
-        <p class="brand-subtitle">O Complexo entrou na arena.</p>
+        <div class="splash-crown" aria-hidden="true">♛</div>
+        <p class="splash-kicker">CPX APRESENTA</p>
+        <h1 class="splash-title"><span>CAXIMBA</span><strong>CLASH</strong></h1>
+        <p class="splash-subtitle">O Complexo entrou na arena.</p>
         <div class="loading-track"><div id="loadingBar" class="loading-bar"></div></div>
-        <div id="loadingText" class="loading-text">Preparando a arena...</div>
+        <p id="loadingText" class="loading-text">CARREGANDO AS 11 CARTAS...</p>
       </div>
     </section>
 
-    <section id="menuScreen" class="screen menu-screen" aria-label="Menu principal">
-      <div class="menu-bg"></div>
-      <header class="topbar topbar--menu">
-        <button class="icon-button" id="soundToggle" aria-label="Ativar ou desativar som">🔊</button>
-        <div class="profile-pill">
-          <span class="profile-pill__badge">CPX</span>
-          <div>
-            <strong id="menuPlayerLabel">Duelo Local</strong>
-            <small id="menuStatsLabel">0 vitórias registradas</small>
-          </div>
-        </div>
-        <button class="icon-button" id="settingsShortcut" aria-label="Abrir configurações">⚙</button>
+    <section id="menuScreen" class="screen menu-screen">
+      <div class="menu-background"></div>
+      <header class="menu-header">
+        <div class="brand-small"><span class="brand-small__crown">♛</span><div><strong>CAXIMBA CLASH</strong><small>V6 · CPX</small></div></div>
+        <button id="soundButton" class="icon-button" type="button" aria-label="Som">🔊</button>
       </header>
-
       <main class="menu-main">
-        <div class="hero-logo">
-          <div class="hero-logo__crown">♛</div>
-          <p>CPX</p>
-          <h2>Caximba <span>Clash</span></h2>
-          <small>Defenda seu lado. Domine o Complexo.</small>
-        </div>
-
-        <div class="menu-actions">
-          <button id="quickBattleButton" class="primary-button primary-button--battle">
-            <span class="primary-button__icon">⚔</span>
-            <span><strong>Batalha 1v1</strong><small>Dois jogadores no mesmo PC</small></span>
-          </button>
-          <div class="menu-actions__grid">
-            <button id="deckButton" class="menu-tile">
-              <span class="menu-tile__icon">🃏</span>
-              <strong>Montar decks</strong>
-              <small>Escolha 8 cartas</small>
-            </button>
-            <button id="collectionButton" class="menu-tile">
-              <span class="menu-tile__icon">📚</span>
-              <strong>Coleção</strong>
-              <small>Conheça as 11 cartas</small>
-            </button>
-            <button id="tutorialButton" class="menu-tile">
-              <span class="menu-tile__icon">🎓</span>
-              <strong>Como jogar</strong>
-              <small>Controles e regras</small>
-            </button>
-            <button id="statsButton" class="menu-tile">
-              <span class="menu-tile__icon">🏆</span>
-              <strong>Histórico</strong>
-              <small>Vitórias e partidas</small>
-            </button>
+        <div class="hero-copy">
+          <p class="eyebrow">DUELO LOCAL · MESMO TECLADO</p>
+          <h2>Defenda o seu lado.<br><span>Derrube o Rei.</span></h2>
+          <p>Escolha onde a carta nasce. Depois disso ela anda, escolhe alvos e luta sozinha.</p>
+          <div class="menu-actions">
+            <button id="playButton" class="primary-button" type="button"><span>⚔</span> JOGAR 1V1</button>
+            <button id="deckButton" class="secondary-button" type="button"><span>▦</span> EDITAR DECKS</button>
           </div>
+        </div>
+        <div class="menu-card-showcase">
+          <div id="showcaseCardA" class="showcase-card"></div>
+          <div id="showcaseCardB" class="showcase-card showcase-card--back"></div>
+          <div class="showcase-glow"></div>
         </div>
       </main>
-
       <footer class="menu-footer">
-        <span>Versão local 2.0.0</span>
-        <span>Feito para o Complexo do Caximba</span>
+        <div><kbd>1 2 3 4</kbd><span>J1 escolhe carta</span></div>
+        <div><kbd>W A S D + Q</kbd><span>J1 posiciona</span></div>
+        <div><kbd>7 8 9 0</kbd><span>J2 escolhe carta</span></div>
+        <div><kbd>SETAS + L</kbd><span>J2 posiciona</span></div>
       </footer>
     </section>
 
-    <section id="setupScreen" class="screen setup-screen" aria-label="Configuração da batalha">
-      <header class="section-header">
-        <button class="back-button" data-back="menuScreen">←</button>
-        <div>
-          <span class="section-kicker">Batalha local</span>
-          <h2>Preparar confronto</h2>
-        </div>
-        <span class="section-header__badge">1V1</span>
+    <section id="deckScreen" class="screen deck-screen">
+      <header class="page-header">
+        <button id="deckBackButton" class="back-button" type="button">← VOLTAR</button>
+        <div><p class="eyebrow">PREPARAÇÃO</p><h2>DECKS DO CONFRONTO</h2></div>
+        <button id="deckStartButton" class="primary-button primary-button--small" type="button">COMEÇAR BATALHA</button>
       </header>
-
-      <main class="setup-main">
-        <div class="versus-panel">
-          <article class="player-setup player-setup--one">
-            <div class="player-setup__number">J1</div>
-            <label for="playerOneName">Nome do jogador</label>
-            <input id="playerOneName" maxlength="16" value="Jogador 1" autocomplete="off">
-            <div class="deck-summary" id="playerOneDeckSummary"></div>
-            <button class="secondary-button" data-edit-deck="1">Editar deck do J1</button>
-          </article>
-
-          <div class="versus-mark">
-            <span>V</span><span>S</span>
-          </div>
-
-          <article class="player-setup player-setup--two">
-            <div class="player-setup__number">J2</div>
-            <label for="playerTwoName">Nome do jogador</label>
-            <input id="playerTwoName" maxlength="16" value="Jogador 2" autocomplete="off">
-            <div class="deck-summary" id="playerTwoDeckSummary"></div>
-            <button class="secondary-button" data-edit-deck="2">Editar deck do J2</button>
-          </article>
-        </div>
-
-        <div class="match-options">
-          <div class="option-card">
-            <div><strong>Duração</strong><small>Tempo normal da partida</small></div>
-            <select id="matchDuration">
-              <option value="120">2 minutos</option>
-              <option value="180" selected>3 minutos</option>
-              <option value="300">5 minutos</option>
-            </select>
-          </div>
-          <div class="option-card">
-            <div><strong>Energia inicial</strong><small>Elixir de cada jogador</small></div>
-            <select id="initialElixir">
-              <option value="5" selected>5</option>
-              <option value="7">7</option>
-              <option value="10">10</option>
-            </select>
-          </div>
-          <label class="option-card option-card--toggle">
-            <div><strong>Modo caos</strong><small>Eventos aleatórios na arena</small></div>
-            <input id="chaosMode" type="checkbox">
-            <span class="toggle"></span>
-          </label>
-          <label class="option-card option-card--toggle">
-            <div><strong>Mãos abertas</strong><small>Mostra as cartas dos dois jogadores</small></div>
-            <input id="openHands" type="checkbox" checked>
-            <span class="toggle"></span>
-          </label>
-        </div>
-
-        <button id="startBattleButton" class="primary-button primary-button--wide">
-          <span class="primary-button__icon">⚡</span>
-          <span><strong>Entrar na arena</strong><small>Use os controles para escolher o ponto e posicionar</small></span>
-        </button>
-      </main>
-    </section>
-
-    <section id="deckScreen" class="screen deck-screen" aria-label="Montagem de deck">
-      <header class="section-header">
-        <button class="back-button" id="deckBackButton">←</button>
-        <div>
-          <span class="section-kicker">Estratégia</span>
-          <h2 id="deckScreenTitle">Deck do Jogador 1</h2>
-        </div>
-        <span class="section-header__badge"><span id="deckCount">0</span>/8</span>
-      </header>
-
-      <main class="deck-main">
-        <aside class="deck-sidebar">
-          <h3>Seu deck</h3>
-          <p>Selecione exatamente 8 cartas.</p>
-          <div id="selectedDeck" class="selected-deck"></div>
-          <div class="deck-metrics">
-            <div><span>Custo médio</span><strong id="averageCost">0.0</strong></div>
-            <div><span>Vida total</span><strong id="totalHealth">0</strong></div>
-            <div><span>Dano médio</span><strong id="averageDamage">0</strong></div>
-          </div>
-          <button id="randomDeckButton" class="secondary-button">Sortear deck</button>
-          <button id="saveDeckButton" class="primary-button primary-button--compact">Salvar deck</button>
+      <div class="deck-layout">
+        <aside class="deck-panel deck-panel--blue">
+          <div class="deck-panel__heading"><span class="player-badge player-badge--blue">J1</span><div><strong>Jogador 1</strong><small id="deckCount1">8/8 cartas</small></div></div>
+          <div id="selectedDeck1" class="selected-deck"></div>
+          <p class="deck-help">Clique em uma carta selecionada para removê-la.</p>
         </aside>
-
-        <section class="collection-browser">
-          <div class="browser-toolbar">
-            <div class="search-field"><span>⌕</span><input id="deckSearch" placeholder="Pesquisar carta..."></div>
-            <select id="deckFilter">
-              <option value="all">Todas</option>
-              <option value="Comum">Comuns</option>
-              <option value="Rara">Raras</option>
-              <option value="Épica">Épicas</option>
-            </select>
-            <select id="deckSort">
-              <option value="cost">Custo</option>
-              <option value="name">Nome</option>
-              <option value="health">Vida</option>
-              <option value="damage">Dano</option>
-            </select>
+        <main class="collection-panel">
+          <div class="collection-tools">
+            <label class="search-box"><span>⌕</span><input id="cardSearch" type="search" placeholder="Pesquisar carta..."></label>
+            <select id="rarityFilter" aria-label="Filtrar raridade"><option value="all">Todas</option><option value="Comum">Comum</option><option value="Rara">Rara</option><option value="Épica">Épica</option></select>
+            <select id="sortFilter" aria-label="Ordenar cartas"><option value="cost">Custo</option><option value="name">Nome</option><option value="rarity">Raridade</option></select>
           </div>
-          <div id="deckCardGrid" class="card-grid"></div>
-        </section>
-      </main>
+          <div class="edit-target"><button id="editPlayer1" class="target-button target-button--active" type="button">EDITANDO J1</button><button id="editPlayer2" class="target-button" type="button">EDITANDO J2</button></div>
+          <div id="cardCollection" class="card-collection"></div>
+        </main>
+        <aside class="deck-panel deck-panel--red">
+          <div class="deck-panel__heading"><span class="player-badge player-badge--red">J2</span><div><strong>Jogador 2</strong><small id="deckCount2">8/8 cartas</small></div></div>
+          <div id="selectedDeck2" class="selected-deck"></div>
+          <p class="deck-help">Cada jogador usa oito cartas.</p>
+        </aside>
+      </div>
     </section>
 
-    <section id="collectionScreen" class="screen collection-screen" aria-label="Coleção de cartas">
-      <header class="section-header">
-        <button class="back-button" data-back="menuScreen">←</button>
-        <div>
-          <span class="section-kicker">Arquivo CPX</span>
-          <h2>Coleção de cartas</h2>
-        </div>
-        <span class="section-header__badge">11</span>
-      </header>
-      <main class="collection-main">
-        <div class="collection-intro">
-          <div>
-            <h3>Os personagens do Complexo</h3>
-            <p>Clique em uma carta para ver atributos, habilidade e função no campo.</p>
-          </div>
-          <div class="rarity-legend">
-            <span class="rarity rarity--common">Comum</span>
-            <span class="rarity rarity--rare">Rara</span>
-            <span class="rarity rarity--epic">Épica</span>
-          </div>
-        </div>
-        <div id="collectionGrid" class="card-grid card-grid--collection"></div>
-      </main>
-    </section>
-
-    <section id="tutorialScreen" class="screen tutorial-screen" aria-label="Como jogar">
-      <header class="section-header">
-        <button class="back-button" data-back="menuScreen">←</button>
-        <div>
-          <span class="section-kicker">Manual da arena</span>
-          <h2>Como jogar</h2>
-        </div>
-        <span class="section-header__badge">?</span>
-      </header>
-      <main class="tutorial-main">
-        <article class="tutorial-hero">
-          <div class="tutorial-hero__visual">
-            <span class="keycap">Q</span><span class="keycap">W</span><span class="keycap">E</span><span class="keycap">R</span>
-            <span class="tutorial-arrow">⚔</span>
-            <span class="keycap">7</span><span class="keycap">8</span><span class="keycap">9</span><span class="keycap">0</span>
-          </div>
-          <h3>Dois jogadores, um teclado</h3>
-          <p>Os dois lados jogam em tempo real. Clique em uma carta e depois clique em qualquer ponto permitido do seu território para colocar a tropa.</p>
-        </article>
-        <div class="tutorial-grid">
-          <article class="tutorial-card tutorial-card--blue">
-            <span class="tutorial-card__number">1</span>
-            <h4>Controles do Jogador 1</h4>
-            <p>Use <kbd>1 2 3 4</kbd> para escolher a carta, <kbd>W A S D</kbd> para mover o marcador azul e <kbd>Q</kbd> para posicionar. Depois disso, a tropa luta sozinha.</p>
-          </article>
-          <article class="tutorial-card tutorial-card--red">
-            <span class="tutorial-card__number">2</span>
-            <h4>Controles do Jogador 2</h4>
-            <p>Use <kbd>7 8 9 0</kbd> para escolher a carta, as <kbd>setas</kbd> para mover o marcador vermelho e <kbd>L</kbd> para posicionar. Depois disso, a tropa luta sozinha.</p>
-          </article>
-          <article class="tutorial-card">
-            <span class="tutorial-card__number">3</span>
-            <h4>Energia</h4>
-            <p>Cada carta custa de 2 a 6 pontos. A energia volta sozinha e fica duas vezes mais rápida no minuto final.</p>
-          </article>
-          <article class="tutorial-card">
-            <span class="tutorial-card__number">4</span>
-            <h4>Torres</h4>
-            <p>Cada lado possui duas torres laterais e uma torre central. Destruir a central encerra imediatamente a partida.</p>
-          </article>
-          <article class="tutorial-card">
-            <span class="tutorial-card__number">5</span>
-            <h4>Cartas especiais</h4>
-            <p>Algumas tropas explodem, geram energia, invocam aliados, aplicam lentidão ou atacam apenas construções.</p>
-          </article>
-          <article class="tutorial-card">
-            <span class="tutorial-card__number">6</span>
-            <h4>Desempate</h4>
-            <p>Se o tempo acabar empatado, começa a morte súbita. A próxima torre destruída decide o vencedor.</p>
-          </article>
-        </div>
-      </main>
-    </section>
-
-    <section id="statsScreen" class="screen stats-screen" aria-label="Histórico de partidas">
-      <header class="section-header">
-        <button class="back-button" data-back="menuScreen">←</button>
-        <div>
-          <span class="section-kicker">Memória do Complexo</span>
-          <h2>Histórico</h2>
-        </div>
-        <button id="clearStatsButton" class="section-header__action">Limpar</button>
-      </header>
-      <main class="stats-main">
-        <div id="statsOverview" class="stats-overview"></div>
-        <div class="history-panel">
-          <h3>Últimas partidas</h3>
-          <div id="historyList" class="history-list"></div>
-        </div>
-      </main>
-    </section>
-
-    <section id="settingsScreen" class="screen settings-screen" aria-label="Configurações">
-      <header class="section-header">
-        <button class="back-button" data-back="menuScreen">←</button>
-        <div>
-          <span class="section-kicker">Preferências</span>
-          <h2>Configurações</h2>
-        </div>
-        <span class="section-header__badge">⚙</span>
-      </header>
-      <main class="settings-main">
-        <label class="settings-row">
-          <div><strong>Efeitos sonoros</strong><small>Ataques, explosões e interface</small></div>
-          <input id="settingsSound" type="checkbox" checked><span class="toggle"></span>
-        </label>
-        <label class="settings-row">
-          <div><strong>Voz do narrador</strong><small>Anuncia início, minuto final e vencedor</small></div>
-          <input id="settingsVoice" type="checkbox" checked><span class="toggle"></span>
-        </label>
-        <label class="settings-row">
-          <div><strong>Partículas</strong><small>Explosões e rastros visuais</small></div>
-          <input id="settingsParticles" type="checkbox" checked><span class="toggle"></span>
-        </label>
-        <label class="settings-row">
-          <div><strong>Vibração</strong><small>Em dispositivos compatíveis</small></div>
-          <input id="settingsVibration" type="checkbox" checked><span class="toggle"></span>
-        </label>
-        <div class="settings-row settings-row--select">
-          <div><strong>Qualidade gráfica</strong><small>Ajuste conforme o computador</small></div>
-          <select id="settingsQuality"><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select>
-        </div>
-        <div class="settings-row settings-row--select">
-          <div><strong>Volume</strong><small>Volume geral dos efeitos</small></div>
-          <input id="settingsVolume" type="range" min="0" max="1" step="0.05" value="0.7">
-        </div>
-        <button id="saveSettingsButton" class="primary-button primary-button--wide"><span>Salvar configurações</span></button>
-      </main>
-    </section>
-
-    <section id="battleScreen" class="screen battle-screen" aria-label="Arena de batalha">
-      <div id="battleBackdrop" class="battle-backdrop"></div>
+    <section id="battleScreen" class="screen battle-screen">
       <header class="battle-header">
-        <div class="battle-player battle-player--two">
-          <span class="battle-player__side">J2</span>
-          <div><strong id="battleNameTwo">Jogador 2</strong><small id="battleCrownsTwo">0 torres</small></div>
-        </div>
-        <div class="battle-clock">
-          <strong id="battleTimer">3:00</strong>
-          <small id="battlePhase">Tempo normal</small>
-        </div>
-        <div class="battle-player battle-player--one">
-          <div><strong id="battleNameOne">Jogador 1</strong><small id="battleCrownsOne">0 torres</small></div>
-          <span class="battle-player__side">J1</span>
-        </div>
-        <button id="pauseButton" class="battle-pause" aria-label="Pausar">Ⅱ</button>
+        <div class="battle-player battle-player--red"><span class="player-badge player-badge--red">J2</span><div><strong>Jogador 2</strong><small><span id="crowns2">0</span> coroas</small></div></div>
+        <div class="battle-clock"><strong id="matchClock">3:00</strong><span id="matchPhase">TEMPO NORMAL</span></div>
+        <div class="battle-player battle-player--blue"><div><strong>Jogador 1</strong><small><span id="crowns1">0</span> coroas</small></div><span class="player-badge player-badge--blue">J1</span></div>
+        <button id="pauseButton" class="icon-button battle-pause" type="button">Ⅱ</button>
       </header>
-
-      <main class="battle-layout">
-        <aside id="playerTwoPanel" class="hand-panel hand-panel--two">
-          <div class="elixir-meter elixir-meter--two">
-            <div class="elixir-meter__track"><div id="elixirBarTwo" class="elixir-meter__fill"></div></div>
-            <strong id="elixirValueTwo">5.0</strong><span>⚡</span>
-          </div>
-          <div id="handTwo" class="battle-hand"></div>
-          <div class="lane-control lane-control--two">
-            <button data-lane-player="2" data-lane="left">← Ponto rápido</button>
-            <strong id="laneLabelTwo">Escolha uma carta e clique no mapa.</strong>
-            <button data-lane-player="2" data-lane="right">Ponto rápido →</button>
-          </div>
-          <button id="deployTwoButton" class="deploy-button deploy-button--two">Jogar no ponto marcado <kbd>L</kbd></button>
+      <div class="battle-layout">
+        <aside class="hand-panel hand-panel--red">
+          <div class="elixir-box"><div class="elixir-track"><div id="elixirFill2" class="elixir-fill"></div></div><strong id="elixirText2">5,0</strong><span>⚡</span></div>
+          <div id="hand2" class="battle-hand"></div>
+          <div class="control-card"><div class="arrow-pad"><kbd>↑</kbd><div><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></div></div><p>Setas movem o marcador vermelho.</p></div>
+          <button id="deployButton2" class="deploy-button deploy-button--red" type="button">JOGAR NO PONTO <kbd>L</kbd></button>
         </aside>
-
-        <section class="arena-wrap">
-          <canvas id="gameCanvas" width="900" height="1500" aria-label="Arena do Caximba Clash"></canvas>
-          <div id="arenaAnnouncement" class="arena-announcement"></div>
-          <div id="chaosBanner" class="chaos-banner"></div>
-          <div class="bridge-label bridge-label--left">Ponte do Campinho</div>
-          <div class="bridge-label bridge-label--right">Ponte do Terminal</div>
-        </section>
-
-        <aside id="playerOnePanel" class="hand-panel hand-panel--one">
-          <div class="elixir-meter elixir-meter--one">
-            <div class="elixir-meter__track"><div id="elixirBarOne" class="elixir-meter__fill"></div></div>
-            <strong id="elixirValueOne">5.0</strong><span>⚡</span>
-          </div>
-          <div id="handOne" class="battle-hand"></div>
-          <div class="lane-control lane-control--one">
-            <button data-lane-player="1" data-lane="left">← Ponto rápido</button>
-            <strong id="laneLabelOne">Escolha uma carta e clique no mapa.</strong>
-            <button data-lane-player="1" data-lane="right">Ponto rápido →</button>
-          </div>
-          <button id="deployOneButton" class="deploy-button deploy-button--one">Jogar no ponto marcado <kbd>Q</kbd></button>
+        <main class="arena-shell">
+          <div class="arena-top-label">J2 · SETAS + L</div>
+          <canvas id="arenaCanvas" width="720" height="1080" aria-label="Arena do Caximba Clash"></canvas>
+          <div id="announcement" class="announcement" aria-live="polite"></div>
+          <div class="arena-bottom-label">J1 · WASD + Q</div>
+        </main>
+        <aside class="hand-panel hand-panel--blue">
+          <div class="elixir-box"><div class="elixir-track"><div id="elixirFill1" class="elixir-fill"></div></div><strong id="elixirText1">5,0</strong><span>⚡</span></div>
+          <div id="hand1" class="battle-hand"></div>
+          <div class="control-card"><div class="wasd-pad"><kbd>W</kbd><div><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div></div><p>WASD move o marcador azul.</p></div>
+          <button id="deployButton1" class="deploy-button deploy-button--blue" type="button">JOGAR NO PONTO <kbd>Q</kbd></button>
         </aside>
-      </main>
+      </div>
     </section>
 
-    <div id="pauseModal" class="modal" aria-hidden="true">
-      <div class="modal__backdrop"></div>
-      <div class="modal__panel pause-panel">
-        <span class="modal__kicker">Partida pausada</span>
-        <h2>Respira, mas não foge.</h2>
-        <p>Os personagens e o cronômetro estão congelados.</p>
-        <button id="resumeButton" class="primary-button primary-button--wide">Continuar</button>
-        <button id="restartButton" class="secondary-button secondary-button--danger">Reiniciar partida</button>
-        <button id="quitBattleButton" class="text-button">Voltar ao menu</button>
-      </div>
+    <div id="pauseOverlay" class="overlay">
+      <div class="dialog"><p class="eyebrow">PARTIDA PAUSADA</p><h2>O COMPLEXO ESPERA</h2><button id="resumeButton" class="primary-button" type="button">CONTINUAR</button><button id="quitButton" class="secondary-button" type="button">SAIR PARA O MENU</button></div>
     </div>
 
-    <div id="resultModal" class="modal" aria-hidden="true">
-      <div class="modal__backdrop"></div>
-      <div class="modal__panel result-panel">
-        <div id="resultCrown" class="result-crown">♛</div>
-        <span id="resultKicker" class="modal__kicker">Fim da batalha</span>
-        <h2 id="resultTitle">Vitória!</h2>
-        <p id="resultSubtitle">A arena reconhece o campeão.</p>
-        <div id="resultScore" class="result-score"></div>
-        <div id="resultHighlights" class="result-highlights"></div>
-        <button id="rematchButton" class="primary-button primary-button--wide">Revanche</button>
-        <button id="resultMenuButton" class="secondary-button">Voltar ao menu</button>
-      </div>
+    <div id="resultOverlay" class="overlay">
+      <div class="dialog result-dialog"><div id="resultCrown" class="result-crown">♛</div><p class="eyebrow">FIM DO CONFRONTO</p><h2 id="resultTitle">JOGADOR 1 VENCEU</h2><p id="resultReason">Torre do Rei destruída.</p><div id="resultScore" class="result-score"></div><button id="rematchButton" class="primary-button" type="button">REVANCHE</button><button id="resultMenuButton" class="secondary-button" type="button">MENU PRINCIPAL</button></div>
     </div>
 
-    <div id="cardModal" class="modal" aria-hidden="true">
-      <div class="modal__backdrop" data-close-card></div>
-      <div class="modal__panel card-detail-panel">
-        <button class="modal__close" data-close-card>×</button>
-        <div id="cardDetailContent"></div>
-      </div>
-    </div>
+    <div id="toastHost" class="toast-host" aria-live="polite"></div>
   </div>
-
-  <script src="data.js?v=5.2"></script>
-  <script src="script.js?v=5.2"></script>
+  <script src="data.js?v=6.0.0"></script>
+  <script src="script.js?v=6.0.0"></script>
 </body>
 </html>
