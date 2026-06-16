@@ -1,4 +1,4 @@
-a:root {
+:root {
   --bg-0: #070913;
   --bg-1: #0d1225;
   --bg-2: #131b36;
@@ -3734,5 +3734,185 @@ kbd {
 @media (max-width: 900px) {
   .battle-card--selected::after {
     display: none;
+  }
+}
+
+/* Atualização 3.0 — 1v1 de teclado, carregamento leve e arena sempre visível */
+.brand-title {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  justify-items: center;
+  overflow: visible;
+  font-size: clamp(3rem, 7.4vw, 5.25rem);
+  letter-spacing: -0.035em;
+  line-height: 0.9;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.brand-title span,
+.brand-title strong {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+}
+
+.brand-title strong {
+  margin-top: 12px;
+  letter-spacing: 0.015em;
+}
+
+.keyboard-control-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 74px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 13px;
+  background: rgba(5, 8, 19, 0.5);
+}
+
+.keyboard-control-card--one {
+  border-color: rgba(83, 170, 255, 0.34);
+  box-shadow: inset 0 0 24px rgba(47, 140, 255, 0.07);
+}
+
+.keyboard-control-card--two {
+  border-color: rgba(255, 103, 127, 0.34);
+  box-shadow: inset 0 0 24px rgba(255, 79, 103, 0.07);
+}
+
+.keyboard-control-card__copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.keyboard-control-card__copy strong {
+  color: #eef4ff;
+  font-size: 0.67rem;
+  line-height: 1.22;
+}
+
+.keyboard-control-card__copy small {
+  color: #aebbd9;
+  font-size: 0.58rem;
+  line-height: 1.2;
+}
+
+.movement-pad {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, 25px);
+  grid-template-rows: repeat(2, 24px);
+  gap: 3px;
+}
+
+.movement-pad kbd,
+.keyboard-control-card kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(65, 78, 123, 0.96), rgba(20, 28, 58, 0.96));
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.57rem;
+  font-weight: 1000;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.movement-pad--arrows kbd {
+  font-size: 0.72rem;
+}
+
+.arena-keyboard-legend {
+  position: absolute;
+  inset: 9px 9px auto;
+  z-index: 8;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.arena-keyboard-legend span {
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.arena-keyboard-legend__one {
+  background: rgba(24, 106, 211, 0.78);
+}
+
+.arena-keyboard-legend__two {
+  background: rgba(185, 36, 68, 0.78);
+}
+
+.arena-wrap {
+  min-height: 360px;
+}
+
+#gameCanvas {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.battle-card--selected::after {
+  content: "MARCADOR ATIVO";
+}
+
+@media (max-width: 900px) {
+  .brand-title {
+    font-size: clamp(2.8rem, 10vw, 4.5rem);
+  }
+
+  .keyboard-control-card {
+    min-height: 0;
+    padding: 5px 6px;
+  }
+
+  .movement-pad {
+    grid-template-columns: repeat(3, 20px);
+    grid-template-rows: repeat(2, 19px);
+    gap: 2px;
+  }
+
+  .keyboard-control-card__copy strong {
+    font-size: 0.57rem;
+  }
+
+  .keyboard-control-card__copy small {
+    font-size: 0.49rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .splash-card {
+    width: min(560px, calc(100vw - 24px));
+    padding-right: 26px;
+    padding-left: 26px;
+  }
+
+  .brand-title {
+    font-size: clamp(2.65rem, 12vw, 4rem);
+  }
+
+  .arena-keyboard-legend span {
+    padding: 4px 7px;
+    font-size: 0.47rem;
   }
 }
