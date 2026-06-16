@@ -363,6 +363,7 @@ const appState = {
   },
   images: new Map(),
   imageErrors: new Set(),
+  objectUrls: new Set(),
   initialized: false,
   splashDone: false,
   soundEnabled: true
@@ -670,21 +671,41 @@ function vibrate(pattern) {
   navigator.vibrate(pattern);
 }
 
-function speak(text, priority = false) {
-  if (!appState.settings.voice) {
-    return;
+function getAnnouncerVoice() {
+  if (!('speechSynthesis' in window) || typeof window.speechSynthesis.getVoices !== 'function') {
+    return null;
   }
-  if (!('speechSynthesis' in window)) {
+  const voices = window.speechSynthesis.getVoices() || [];
+  const scoreVoice = (voice) => {
+    const label = `${voice.name || ''} ${voice.voiceURI || ''}`.toLowerCase();
+    let score = 0;
+    if (/pt[-_]?br/i.test(voice.lang || '')) score += 80;
+    if (/male|masc|ricardo|antonio|carlos|felipe|lucas|daniel|google português/i.test(label)) score += 45;
+    if (/natural|premium|enhanced/i.test(label)) score += 20;
+    if (/female|femin/i.test(label)) score -= 35;
+    return score;
+  };
+  return [...voices].sort((a, b) => scoreVoice(b) - scoreVoice(a))[0] || null;
+}
+
+function speak(text, priority = false) {
+  if (!appState.settings.voice || !('speechSynthesis' in window)) {
     return;
   }
   if (priority) {
     window.speechSynthesis.cancel();
   }
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'pt-BR';
-  utterance.rate = 1.06;
-  utterance.pitch = 0.92;
-  utterance.volume = clamp(appState.settings.volume + 0.1, 0, 1);
+  const utterance = new SpeechSynthesisUtterance(String(text).toUpperCase());
+  const voice = getAnnouncerVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang || 'pt-BR';
+  } else {
+    utterance.lang = 'pt-BR';
+  }
+  utterance.rate = 0.74;
+  utterance.pitch = 0.48;
+  utterance.volume = clamp(appState.settings.volume + 0.18, 0, 1);
   window.speechSynthesis.speak(utterance);
 }
 
@@ -1168,8 +1189,49 @@ function saveSettings() {
   showScreen('menuScreen');
 }
 
+function dataUriToObjectUrl(source) {
+  if (typeof source !== 'string' || !source.startsWith('data:image/')) {
+    return source;
+  }
+  try {
+    const commaIndex = source.indexOf(',');
+    const header = source.slice(0, commaIndex);
+    const payload = source.slice(commaIndex + 1);
+    const mimeMatch = header.match(/^data:([^;]+)/i);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const binary = atob(payload);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    appState.objectUrls.add(url);
+    return url;
+  } catch (error) {
+    console.error('Falha ao preparar imagem embutida:', error);
+    return source;
+  }
+}
+
+function prepareCardImageSources() {
+  CARDS.forEach((card) => {
+    card.originalImage = card.originalImage || card.image;
+    card.originalPortrait = card.originalPortrait || card.portrait || card.image;
+    card.image = dataUriToObjectUrl(card.originalImage);
+    card.portrait = dataUriToObjectUrl(card.originalPortrait);
+  });
+  Object.values(TOKEN_BLUEPRINTS || {}).forEach((token) => {
+    token.originalPortrait = token.originalPortrait || token.portrait || token.image;
+    if (token.originalPortrait) token.portrait = dataUriToObjectUrl(token.originalPortrait);
+    if (token.image) token.image = dataUriToObjectUrl(token.image);
+  });
+}
+
 async function preloadImages(onProgress = () => {}) {
-  const paths = [...new Set(CARDS.map((card) => card.portrait).filter(Boolean))];
+  const paths = [...new Set([
+    ...CARDS.flatMap((card) => [card.image, card.portrait]),
+    ...Object.values(TOKEN_BLUEPRINTS || {}).flatMap((token) => [token.image, token.portrait])
+  ].filter(Boolean))];
   if (!paths.length) {
     onProgress(1, '', true);
     return;
@@ -1188,10 +1250,11 @@ async function preloadImages(onProgress = () => {}) {
       onProgress(loaded / paths.length, path, success);
       resolve();
     };
-    const timeoutId = window.setTimeout(() => finish(false), 3200);
+    const timeoutId = window.setTimeout(() => finish(false), 7000);
     image.onload = () => finish(true);
     image.onerror = () => finish(false);
     image.decoding = 'async';
+    image.loading = 'eager';
     image.src = path;
   })));
 }
@@ -1438,9 +1501,9 @@ class BattleGame {
         this.announce(String(current));
         audio.countdown(current);
       } else {
-        this.announce('Batalha!');
+        this.announce('LUTEM!');
         audio.countdown(0);
-        speak('Batalha!', true);
+        speak('Lutem!', true);
       }
     }
     if (this.countdown <= 0) {
@@ -1521,7 +1584,11 @@ class BattleGame {
       if (!unit.alive) {
         return;
       }
+      unit.previousX = unit.x;
+      unit.previousY = unit.y;
       unit.age += dt;
+      unit.attackAnim = Math.max(0, (unit.attackAnim || 0) - dt);
+      unit.specialPulse += dt;
       unit.attackCooldown = Math.max(0, unit.attackCooldown - dt);
       unit.hitFlash = Math.max(0, unit.hitFlash - dt);
       unit.spawnScale = lerp(unit.spawnScale, 1, clamp(dt * 8, 0, 1));
@@ -1558,13 +1625,14 @@ class BattleGame {
           }
         } else {
           unit.state = 'moving';
-          this.moveUnitToward(unit, target.x, target.y, dt);
+          this.moveUnitWithBridgePath(unit, target.x, target.y, dt);
         }
       } else {
         unit.state = 'moving';
         this.followLanePath(unit, dt);
       }
       this.keepUnitInBounds(unit);
+      this.keepUnitOutOfWater(unit);
     });
   }
 
@@ -1637,32 +1705,66 @@ class BattleGame {
     return 0;
   }
 
+  isBridgeX(x, radius = 0) {
+    const half = ARENA.bridgeWidth / 2 - Math.min(radius, 26) - 4;
+    return Object.values(ARENA.laneX).some((bridgeX) => Math.abs(x - bridgeX) <= half);
+  }
+
+  nearestBridgeX(x) {
+    return Math.abs(x - ARENA.laneX.left) <= Math.abs(x - ARENA.laneX.right)
+      ? ARENA.laneX.left
+      : ARENA.laneX.right;
+  }
+
+  sideOfRiver(y) {
+    if (y < ARENA.riverTop) return 'top';
+    if (y > ARENA.riverBottom) return 'bottom';
+    return 'river';
+  }
+
   followLanePath(unit, dt) {
     const enemyId = unit.playerId === 1 ? 2 : 1;
     const laneTower = this.getTower(enemyId, unit.lane, 'princess');
     const kingTower = this.getTower(enemyId, 'center', 'king');
     const destination = laneTower?.alive ? laneTower : kingTower;
-    if (!destination) {
+    if (!destination) return;
+    this.moveUnitWithBridgePath(unit, destination.x, destination.y, dt);
+  }
+
+  moveUnitWithBridgePath(unit, targetX, targetY, dt) {
+    const sourceSide = this.sideOfRiver(unit.y);
+    const targetSide = this.sideOfRiver(targetY);
+    const needsCrossing = sourceSide !== targetSide && sourceSide !== 'river' && targetSide !== 'river';
+    const inRiver = sourceSide === 'river';
+    const bridgeX = unit.routeBridgeX || ARENA.laneX[unit.lane] || this.nearestBridgeX(unit.x);
+    unit.routeBridgeX = bridgeX;
+
+    if (inRiver) {
+      const exitY = targetSide === 'top' || (targetSide === 'river' && unit.playerId === 1)
+        ? ARENA.riverTop - unit.radius - 8
+        : ARENA.riverBottom + unit.radius + 8;
+      this.moveUnitToward(unit, bridgeX, exitY, dt);
+      unit.x = clamp(unit.x, bridgeX - ARENA.bridgeWidth / 2 + unit.radius + 5, bridgeX + ARENA.bridgeWidth / 2 - unit.radius - 5);
       return;
     }
-    const bridgeX = ARENA.laneX[unit.lane];
-    const direction = unit.playerId === 1 ? -1 : 1;
-    const beforeRiver = unit.playerId === 1 ? unit.y > ARENA.riverBottom : unit.y < ARENA.riverTop;
-    const insideRiverBand = unit.y >= ARENA.riverTop - 30 && unit.y <= ARENA.riverBottom + 30;
-    if (beforeRiver || insideRiverBand) {
-      const waypointY = unit.playerId === 1 ? ARENA.riverBottom - 8 : ARENA.riverTop + 8;
-      this.moveUnitToward(unit, bridgeX, waypointY, dt);
+
+    if (needsCrossing) {
+      const entryY = sourceSide === 'bottom'
+        ? ARENA.riverBottom + unit.radius + 10
+        : ARENA.riverTop - unit.radius - 10;
+      const distanceToEntry = Math.hypot(unit.x - bridgeX, unit.y - entryY);
+      if (distanceToEntry > Math.max(18, unit.radius * 0.55)) {
+        this.moveUnitToward(unit, bridgeX, entryY, dt);
+        return;
+      }
+      const exitY = sourceSide === 'bottom'
+        ? ARENA.riverTop - unit.radius - 10
+        : ARENA.riverBottom + unit.radius + 10;
+      this.moveUnitToward(unit, bridgeX, exitY, dt);
       return;
     }
-    if (direction < 0 && unit.y < ARENA.riverTop) {
-      this.moveUnitToward(unit, destination.x, destination.y, dt);
-      return;
-    }
-    if (direction > 0 && unit.y > ARENA.riverBottom) {
-      this.moveUnitToward(unit, destination.x, destination.y, dt);
-      return;
-    }
-    this.moveUnitToward(unit, bridgeX, unit.y + direction * 100, dt);
+
+    this.moveUnitToward(unit, targetX, targetY, dt);
   }
 
   moveUnitToward(unit, targetX, targetY, dt) {
@@ -1673,15 +1775,9 @@ class BattleGame {
     const slowEffect = this.effects
       .filter((effect) => effect.type === 'slow' && effect.targetId === unit.id)
       .sort((a, b) => a.multiplier - b.multiplier)[0];
-    if (slowEffect) {
-      speedMultiplier *= slowEffect.multiplier;
-    }
-    if (this.chaosActive?.type === 'mud') {
-      speedMultiplier *= 0.72;
-    }
-    if (this.chaosActive?.type === 'turbo') {
-      speedMultiplier *= 1.2;
-    }
+    if (slowEffect) speedMultiplier *= slowEffect.multiplier;
+    if (this.chaosActive?.type === 'mud') speedMultiplier *= 0.72;
+    if (this.chaosActive?.type === 'turbo') speedMultiplier *= 1.2;
     const movement = unit.speed * speedMultiplier * dt;
     unit.x += dx / length * movement;
     unit.y += dy / length * movement;
@@ -1689,11 +1785,34 @@ class BattleGame {
     unit.walkCycle += dt * unit.speed * 0.045;
   }
 
+  keepUnitOutOfWater(unit) {
+    const insideRiver = unit.y > ARENA.riverTop && unit.y < ARENA.riverBottom;
+    if (!insideRiver) {
+      unit.lastSafeY = unit.y;
+      return;
+    }
+    if (this.isBridgeX(unit.x, unit.radius)) {
+      return;
+    }
+    const bridgeX = unit.routeBridgeX || this.nearestBridgeX(unit.x);
+    unit.x += Math.sign(bridgeX - unit.x) * Math.min(12, Math.abs(bridgeX - unit.x));
+    if (!this.isBridgeX(unit.x, unit.radius)) {
+      const cameFromTop = (unit.lastSafeY ?? unit.previousY ?? unit.y) < ARENA.riverTop;
+      unit.y = cameFromTop
+        ? ARENA.riverTop - unit.radius - 3
+        : ARENA.riverBottom + unit.radius + 3;
+    }
+  }
+
   faceTarget(unit, target) {
     unit.facing = Math.atan2(target.y - unit.y, target.x - unit.x);
   }
 
   performUnitAttack(unit, target) {
+    unit.attackAnimMax = unit.special === 'kingPunch' || unit.special === 'guitarSmash' ? 0.38 : 0.28;
+    unit.attackAnim = unit.attackAnimMax;
+    unit.attackTargetX = target.x;
+    unit.attackTargetY = target.y;
     const speed = unit.attackSpeed / Math.max(0.1, unit.attackSpeedMultiplier);
     unit.attackCooldown = speed;
     let missChance = unit.missChance || 0;
@@ -1729,10 +1848,49 @@ class BattleGame {
       this.applyAttackDamage(unit, target, damage, isCritical);
     }
     unit.rotation = unit.playerId === 1 ? -0.12 : 0.12;
+    this.emitAttackVisual(unit, target, isCritical);
     if (isCritical) {
       this.addFloater(target.x, target.y - target.radius - 8, 'CRÍTICO!', '#ffe16c', 0.85);
       this.addArenaRing(target.x, target.y, '#ffe16c', 90, 0.46);
     }
+  }
+
+  emitAttackVisual(unit, target, isCritical = false) {
+    const color = PLAYER_COLORS[unit.playerId].light;
+    const midX = (unit.x + target.x) / 2;
+    const midY = (unit.y + target.y) / 2;
+    if (unit.special === 'kingPunch') {
+      this.addArenaRing(target.x, target.y, '#ffd76a', 118, 0.42);
+      this.emitParticles(target.x, target.y, '#ffd76a', 18, 180, 0.58);
+      this.shake = Math.max(this.shake, 8);
+      return;
+    }
+    if (unit.special === 'crookedPunch') {
+      this.addArenaRing(target.x + randomRange(-18, 18), target.y + randomRange(-18, 18), isCritical ? '#ffe36d' : '#ff9b63', isCritical ? 105 : 72, 0.34);
+      this.emitParticles(target.x, target.y, isCritical ? '#ffe36d' : '#ff9b63', isCritical ? 16 : 8, 130, 0.45);
+      return;
+    }
+    if (unit.special === 'chaosStrike') {
+      this.addArenaRing(midX, midY, '#c35bf1', 92, 0.32);
+      this.emitParticles(target.x, target.y, '#c35bf1', 14, 150, 0.48);
+      return;
+    }
+    if (unit.special === 'milkLatch') {
+      this.emitParticles(midX, midY, '#fff7e5', 14, 90, 0.55);
+      this.addArenaRing(target.x, target.y, '#f7f1db', 66, 0.3);
+      return;
+    }
+    if (unit.special === 'guitarSmash') {
+      this.addArenaRing(target.x, target.y, '#9b75ff', 128, 0.46);
+      this.emitParticles(target.x, target.y, '#9b75ff', 22, 190, 0.62);
+      this.shake = Math.max(this.shake, 7);
+      return;
+    }
+    if (unit.special === 'energizedHoe') {
+      this.emitParticles(target.x, target.y, unit.enraged ? '#ffe36d' : '#d7b06c', 13, 135, 0.5);
+      return;
+    }
+    this.emitParticles(target.x, target.y, color, isCritical ? 12 : 6, isCritical ? 145 : 90, 0.38);
   }
 
   applyAttackDamage(unit, target, damage, isCritical = false) {
@@ -2114,7 +2272,7 @@ class BattleGame {
     }, 750);
     if (winnerId) {
       audio.victory();
-      speak(`${this.players[winnerId].name} venceu o confronto!`, true);
+      speak(`${this.players[winnerId].name}. Vitória!`, true);
     } else {
       speak('A batalha terminou empatada.', true);
     }
@@ -2870,7 +3028,7 @@ class BattleGame {
       id: uid('token'),
       name: options.label || blueprint.name,
       shortName: options.label || blueprint.name,
-      portrait: blueprint.portrait,
+      portrait: blueprint.image || blueprint.portrait,
       hp: blueprint.hp,
       maxHp: blueprint.hp,
       damage: blueprint.damage,
@@ -2898,7 +3056,7 @@ class BattleGame {
       id: uid('unit'),
       name: card.name,
       shortName: card.shortName,
-      portrait: card.portrait,
+      portrait: card.image || card.portrait,
       hp: Math.round(card.hp * (modifiers.hpMultiplier || 1)),
       maxHp: Math.round(card.hp * (modifiers.hpMultiplier || 1)),
       damage: card.damage,
@@ -2945,7 +3103,13 @@ class BattleGame {
       damageMultiplier: data.damageMultiplier || 1,
       attackSpeedMultiplier: 1,
       enraged: false,
-      generatorTimer: data.special === 'elixirGenerator' ? 3.1 : 999
+      generatorTimer: data.special === 'elixirGenerator' ? 3.1 : 999,
+      attackAnim: 0,
+      attackAnimMax: 0.28,
+      specialPulse: randomRange(0, Math.PI * 2),
+      lastSafeY: y,
+      routeBridgeX: ARENA.laneX[lane],
+      visualSeed: Math.random()
     };
     this.units.push(unit);
     return unit;
@@ -3375,111 +3539,165 @@ class BattleGame {
   drawUnits(ctx) {
     const sorted = [...this.units].sort((a, b) => a.y - b.y);
     sorted.forEach((unit) => {
-      if (!unit.alive && unit.deathTimer <= 0) {
-        return;
-      }
+      if (!unit.alive && unit.deathTimer <= 0) return;
       const deathProgress = unit.alive ? 0 : 1 - clamp(unit.deathTimer / 0.32, 0, 1);
-      const scale = unit.spawnScale * (1 - deathProgress * 0.7);
+      const baseScale = unit.spawnScale * (1 - deathProgress * 0.7);
       const color = PLAYER_COLORS[unit.playerId];
-      ctx.save();
-      ctx.translate(unit.x, unit.y);
-      ctx.rotate(unit.rotation);
-      ctx.scale(scale, scale);
-      ctx.globalAlpha = unit.alive ? 1 : 1 - deathProgress;
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.31)';
-      ctx.beginPath();
-      ctx.ellipse(0, unit.radius * 0.45, unit.radius * 0.95, unit.radius * 0.48, 0, 0, Math.PI * 2);
-      ctx.fill();
-      if (unit.enraged) {
-        ctx.strokeStyle = '#ffd44f';
-        ctx.lineWidth = 6;
-        ctx.globalAlpha *= 0.65 + Math.sin(this.elapsed * 9) * 0.2;
-        ctx.beginPath();
-        ctx.arc(0, 0, unit.radius + 9, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = unit.alive ? 1 : 1 - deathProgress;
-      }
-      const slow = this.effects.some((effect) => effect.type === 'slow' && effect.targetId === unit.id);
-      if (slow) {
-        ctx.strokeStyle = '#f8f5df';
-        ctx.lineWidth = 5;
-        ctx.globalAlpha *= 0.6;
-        ctx.beginPath();
-        ctx.arc(0, 0, unit.radius + 6, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = unit.alive ? 1 : 1 - deathProgress;
-      }
-      const confusion = this.effects.some((effect) => effect.type === 'confusion' && effect.targetId === unit.id);
-      if (confusion) {
-        ctx.fillStyle = '#d68cff';
-        ctx.font = '900 21px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('?', -10, -unit.radius - 12 + Math.sin(this.elapsed * 5) * 4);
-        ctx.fillText('?', 12, -unit.radius - 20 + Math.sin(this.elapsed * 5 + 2) * 4);
-      }
-      ctx.save();
-      ctx.rotate(unit.facing + Math.PI / 2);
       const portrait = getCachedImage(unit.portrait);
-      if (portrait) {
+      const attackProgress = unit.attackAnimMax > 0 ? 1 - clamp((unit.attackAnim || 0) / unit.attackAnimMax, 0, 1) : 0;
+      const attackWave = unit.attackAnim > 0 ? Math.sin(attackProgress * Math.PI) : 0;
+      const lunge = attackWave * Math.min(18, unit.radius * 0.5);
+      const bob = unit.state === 'moving' ? Math.sin(unit.walkCycle * 1.8) * 2.8 : 0;
+      const facingX = Math.cos(unit.facing || 0);
+      const facingY = Math.sin(unit.facing || 0);
+      const width = Math.max(60, unit.radius * 2.08);
+      const height = Math.max(76, unit.radius * 2.62);
+
+      ctx.save();
+      ctx.translate(unit.x + facingX * lunge, unit.y + facingY * lunge + bob);
+      ctx.rotate((unit.rotation || 0) + attackWave * 0.08 * (unit.playerId === 1 ? -1 : 1));
+      ctx.scale(baseScale, baseScale);
+      ctx.globalAlpha = unit.alive ? 1 : 1 - deathProgress;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.34)';
+      ctx.beginPath();
+      ctx.ellipse(-facingX * 4, height * 0.36, width * 0.55, height * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (unit.special === 'elixirGenerator') {
+        ctx.save();
+        ctx.globalAlpha *= 0.45 + Math.sin(unit.specialPulse * 3) * 0.12;
+        ctx.strokeStyle = '#d66dff';
+        ctx.lineWidth = 7;
         ctx.beginPath();
-        ctx.arc(0, 0, unit.radius, 0, Math.PI * 2);
-        ctx.clip();
-        const sourceSize = Math.min(portrait.width, portrait.height);
-        const sourceX = (portrait.width - sourceSize) / 2;
-        const sourceY = (portrait.height - sourceSize) / 2;
-        ctx.drawImage(
-          portrait,
-          sourceX,
-          sourceY,
-          sourceSize,
-          sourceSize,
-          -unit.radius,
-          -unit.radius,
-          unit.radius * 2,
-          unit.radius * 2
-        );
-      } else {
-        const bodyGradient = ctx.createRadialGradient(-unit.radius * 0.3, -unit.radius * 0.35, 4, 0, 0, unit.radius);
-        bodyGradient.addColorStop(0, '#ffffff');
-        bodyGradient.addColorStop(0.25, color.light);
-        bodyGradient.addColorStop(1, color.dark);
-        ctx.fillStyle = bodyGradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, unit.radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(0, 0, Math.max(width, height) * 0.56, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
       }
-      ctx.restore();
-      ctx.strokeStyle = unit.hitFlash > 0 ? '#ffffff' : color.main;
-      ctx.lineWidth = unit.hitFlash > 0 ? 8 : 5;
-      ctx.beginPath();
-      ctx.arc(0, 0, unit.radius, 0, Math.PI * 2);
+      if (unit.enraged) {
+        ctx.save();
+        ctx.strokeStyle = '#ffe061';
+        ctx.lineWidth = 8;
+        ctx.globalAlpha *= 0.65 + Math.sin(unit.specialPulse * 8) * 0.22;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(width, height) * 0.58, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (this.effects.some((effect) => effect.type === 'slow' && effect.targetId === unit.id)) {
+        ctx.strokeStyle = '#fff7dc';
+        ctx.lineWidth = 5;
+        ctx.setLineDash([8, 7]);
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(width, height) * 0.58, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      const frame = ctx.createLinearGradient(-width / 2, -height / 2, width / 2, height / 2);
+      frame.addColorStop(0, unit.hitFlash > 0 ? '#ffffff' : color.light);
+      frame.addColorStop(0.48, color.main);
+      frame.addColorStop(1, color.dark);
+      ctx.fillStyle = frame;
+      ctx.strokeStyle = unit.hitFlash > 0 ? '#ffffff' : '#101526';
+      ctx.lineWidth = unit.hitFlash > 0 ? 7 : 5;
+      this.roundRect(ctx, -width / 2, -height / 2, width, height, Math.max(12, width * 0.2));
+      ctx.fill();
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, unit.radius - 4, Math.PI * 1.05, Math.PI * 1.85);
-      ctx.stroke();
+
+      ctx.save();
+      this.roundRect(ctx, -width / 2 + 5, -height / 2 + 5, width - 10, height - 10, Math.max(9, width * 0.16));
+      ctx.clip();
+      if (portrait) {
+        const sourceRatio = portrait.width / portrait.height;
+        const destinationRatio = width / height;
+        let sx = 0, sy = 0, sw = portrait.width, sh = portrait.height;
+        if (sourceRatio > destinationRatio) {
+          sw = portrait.height * destinationRatio;
+          sx = (portrait.width - sw) / 2;
+        } else {
+          sh = portrait.width / destinationRatio;
+          sy = (portrait.height - sh) / 2;
+        }
+        ctx.drawImage(portrait, sx, sy, sw, sh, -width / 2 + 5, -height / 2 + 5, width - 10, height - 10);
+      } else {
+        const fallback = ctx.createRadialGradient(-width * 0.2, -height * 0.3, 4, 0, 0, height * 0.7);
+        fallback.addColorStop(0, '#ffffff');
+        fallback.addColorStop(0.25, color.light);
+        fallback.addColorStop(1, color.dark);
+        ctx.fillStyle = fallback;
+        ctx.fillRect(-width / 2 + 5, -height / 2 + 5, width - 10, height - 10);
+      }
+      const shine = ctx.createLinearGradient(0, -height / 2, 0, 0);
+      shine.addColorStop(0, 'rgba(255,255,255,0.28)');
+      shine.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = shine;
+      ctx.fillRect(-width / 2 + 5, -height / 2 + 5, width - 10, height * 0.4);
       ctx.restore();
+
+      ctx.fillStyle = 'rgba(7,11,26,0.84)';
+      this.roundRect(ctx, -width / 2 + 5, height / 2 - 20, width - 10, 15, 6);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 10px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((unit.shortName || unit.name).slice(0, 12), 0, height / 2 - 12.5);
+
+      this.drawUnitAttackAccent(ctx, unit, attackWave, width, height);
+      ctx.restore();
+
       if (unit.alive) {
-        this.drawHealthBar(ctx, unit, Math.max(54, unit.radius * 2.15), unit.radius + 17, color.main);
-        this.drawUnitLabel(ctx, unit);
+        this.drawHealthBar(ctx, unit, Math.max(58, width * 1.05), height / 2 + 17, color.main);
       }
     });
   }
 
-  drawUnitLabel(ctx, unit) {
-    const text = unit.shortName || unit.name;
-    const maxLength = 15;
-    const display = text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+  drawUnitAttackAccent(ctx, unit, attackWave, width, height) {
+    if (attackWave <= 0.02) return;
     ctx.save();
-    ctx.font = '800 16px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.72)';
-    ctx.strokeText(display, unit.x, unit.y - unit.radius - 18);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(display, unit.x, unit.y - unit.radius - 18);
+    ctx.globalAlpha = attackWave;
+    const direction = unit.facing || 0;
+    ctx.rotate(direction);
+    if (unit.special === 'kingPunch' || unit.special === 'crookedPunch' || unit.special === 'chaosStrike') {
+      ctx.strokeStyle = unit.special === 'chaosStrike' ? '#d985ff' : '#ffe078';
+      ctx.lineWidth = unit.special === 'kingPunch' ? 13 : 8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(width * 0.32, 0, width * 0.72, -0.72, 0.72);
+      ctx.stroke();
+    } else if (unit.special === 'guitarSmash') {
+      ctx.strokeStyle = '#a987ff';
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.moveTo(-width * 0.15, -height * 0.38);
+      ctx.lineTo(width * 0.8, height * 0.2);
+      ctx.stroke();
+    } else if (unit.special === 'energizedHoe') {
+      ctx.strokeStyle = unit.enraged ? '#ffe366' : '#c99a58';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(-width * 0.1, -height * 0.42);
+      ctx.lineTo(width * 0.75, height * 0.12);
+      ctx.stroke();
+    } else if (unit.special === 'milkLatch') {
+      ctx.strokeStyle = '#fff8e8';
+      ctx.lineWidth = 9;
+      ctx.setLineDash([8, 5]);
+      ctx.beginPath();
+      ctx.moveTo(width * 0.2, 0);
+      ctx.lineTo(width * 1.05, 0);
+      ctx.stroke();
+    } else if (unit.special === 'towerDive') {
+      ctx.strokeStyle = '#79d8ff';
+      ctx.lineWidth = 7;
+      for (let i = -1; i <= 1; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(-width * 0.55, i * 10);
+        ctx.lineTo(-width * 1.05, i * 10);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
@@ -3488,13 +3706,13 @@ class BattleGame {
     const x = entity.x - width / 2;
     const y = entity.y - offsetY;
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.68)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
     this.roundRect(ctx, x - 3, y - 3, width + 6, 13, 6);
     ctx.fill();
     ctx.fillStyle = ratio > 0.28 ? color : '#ff3858';
     this.roundRect(ctx, x, y, width * ratio, 7, 4);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
     this.roundRect(ctx, x + 2, y + 1, Math.max(0, width * ratio - 4), 2, 1);
     ctx.fill();
     ctx.restore();
@@ -3875,6 +4093,7 @@ function initialize() {
     return;
   }
   appState.initialized = true;
+  prepareCardImageSources();
   cacheDom();
   battle = new BattleGame(dom.gameCanvas);
   bindNavigation();
