@@ -1,4 +1,4 @@
-:root {
+a:root {
   --bg-0: #070913;
   --bg-1: #0d1225;
   --bg-2: #131b36;
@@ -3668,5 +3668,71 @@ kbd {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* Atualização 2.0 — posicionamento livre no mapa */
+.arena-wrap--placing-one {
+  border-color: rgba(72, 164, 255, 0.72);
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(47, 140, 255, 0.18),
+    0 0 34px rgba(47, 140, 255, 0.24),
+    inset 0 0 40px rgba(0, 0, 0, 0.38);
+}
+
+.arena-wrap--placing-two {
+  border-color: rgba(255, 104, 126, 0.72);
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(255, 79, 103, 0.18),
+    0 0 34px rgba(255, 79, 103, 0.24),
+    inset 0 0 40px rgba(0, 0, 0, 0.38);
+}
+
+.arena-wrap--placing-one #gameCanvas,
+.arena-wrap--placing-two #gameCanvas {
+  cursor: crosshair;
+}
+
+.lane-control strong {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.battle-card__image {
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  object-position: center;
+}
+
+.battle-card--selected::after {
+  content: "CLIQUE NO MAPA";
+  position: absolute;
+  right: 4px;
+  bottom: 25px;
+  left: 4px;
+  z-index: 4;
+  padding: 4px 3px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 6px;
+  background: rgba(5, 8, 18, 0.86);
+  color: #fff;
+  font-size: 0.43rem;
+  font-weight: 1000;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+}
+
+#gameCanvas {
+  min-width: 0;
+  min-height: 0;
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .battle-card--selected::after {
+    display: none;
   }
 }
