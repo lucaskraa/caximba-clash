@@ -22,7 +22,7 @@
       <div class="splash-card">
         <div class="brand-crown">♛</div>
         <div class="brand-kicker">CPX apresenta</div>
-        <h1 class="brand-title">Caximba <strong>Clash</strong></h1>
+        <h1 class="brand-title"><span>Caximba</span><strong>Clash</strong></h1>
         <p class="brand-subtitle">O Complexo entrou na arena.</p>
         <div class="loading-track"><div id="loadingBar" class="loading-bar"></div></div>
         <div id="loadingText" class="loading-text">Preparando a arena...</div>
@@ -151,7 +151,7 @@
 
         <button id="startBattleButton" class="primary-button primary-button--wide">
           <span class="primary-button__icon">⚡</span>
-          <span><strong>Entrar na arena</strong><small>Escolha uma carta e clique no mapa para posicionar</small></span>
+          <span><strong>Entrar na arena</strong><small>1–4 e 7–0 escolhem • WASD/Setas movem • Q/L posicionam</small></span>
         </button>
       </main>
     </section>
@@ -238,23 +238,23 @@
       <main class="tutorial-main">
         <article class="tutorial-hero">
           <div class="tutorial-hero__visual">
-            <span class="keycap">Q</span><span class="keycap">W</span><span class="keycap">E</span><span class="keycap">R</span>
+            <span class="keycap">WASD</span><span class="keycap">Q</span>
             <span class="tutorial-arrow">⚔</span>
-            <span class="keycap">7</span><span class="keycap">8</span><span class="keycap">9</span><span class="keycap">0</span>
+            <span class="keycap">SETAS</span><span class="keycap">L</span>
           </div>
           <h3>Dois jogadores, um teclado</h3>
-          <p>Os dois lados jogam em tempo real. Clique em uma carta e depois clique em qualquer ponto permitido do seu território para colocar a tropa.</p>
+          <p>Cada jogador movimenta o próprio marcador de invocação. Depois de posicionada, a tropa anda, procura alvos e ataca completamente sozinha.</p>
         </article>
         <div class="tutorial-grid">
           <article class="tutorial-card tutorial-card--blue">
             <span class="tutorial-card__number">1</span>
             <h4>Controles do Jogador 1</h4>
-            <p>Clique em uma das quatro cartas do Jogador 1 e depois clique na parte azul, abaixo do rio. <kbd>Q W E R</kbd> também selecionam as cartas.</p>
+            <p><kbd>1 2 3 4</kbd> escolhem a carta, <kbd>W A S D</kbd> movem o marcador azul e <kbd>Q</kbd> posiciona a tropa.</p>
           </article>
           <article class="tutorial-card tutorial-card--red">
             <span class="tutorial-card__number">2</span>
             <h4>Controles do Jogador 2</h4>
-            <p>Clique em uma das quatro cartas do Jogador 2 e depois clique na parte vermelha, acima do rio. <kbd>7 8 9 0</kbd> também selecionam as cartas.</p>
+            <p><kbd>7 8 9 0</kbd> escolhem a carta, as <kbd>setas</kbd> movem o marcador vermelho e <kbd>L</kbd> posiciona a tropa.</p>
           </article>
           <article class="tutorial-card">
             <span class="tutorial-card__number">3</span>
@@ -269,7 +269,7 @@
           <article class="tutorial-card">
             <span class="tutorial-card__number">5</span>
             <h4>Cartas especiais</h4>
-            <p>Algumas tropas explodem, geram energia, invocam aliados, aplicam lentidão ou atacam apenas construções.</p>
+            <p>Tropas comuns param para lutar contra inimigos próximos. Cartas com alvo “Torres”, como Zeca Maratona, ignoram unidades e correm direto para construções.</p>
           </article>
           <article class="tutorial-card">
             <span class="tutorial-card__number">6</span>
@@ -361,12 +361,16 @@
             <strong id="elixirValueTwo">5.0</strong><span>⚡</span>
           </div>
           <div id="handTwo" class="battle-hand"></div>
-          <div class="lane-control lane-control--two">
-            <button data-lane-player="2" data-lane="left">← Ponto rápido</button>
-            <strong id="laneLabelTwo">Escolha uma carta e clique no mapa.</strong>
-            <button data-lane-player="2" data-lane="right">Ponto rápido →</button>
+          <div class="keyboard-control-card keyboard-control-card--two">
+            <div class="movement-pad movement-pad--arrows" aria-label="Controles do Jogador 2">
+              <span></span><kbd>↑</kbd><span></span><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>
+            </div>
+            <div class="keyboard-control-card__copy">
+              <strong id="laneLabelTwo">Setas movem o marcador vermelho</strong>
+              <small><kbd>7 8 9 0</kbd> escolhem a carta</small>
+            </div>
           </div>
-          <button id="deployTwoButton" class="deploy-button deploy-button--two">Jogar no ponto marcado <kbd>Enter</kbd></button>
+          <button id="deployTwoButton" class="deploy-button deploy-button--two">Posicionar carta <kbd>L</kbd></button>
         </aside>
 
         <section class="arena-wrap">
@@ -375,6 +379,10 @@
           <div id="chaosBanner" class="chaos-banner"></div>
           <div class="bridge-label bridge-label--left">Ponte do Campinho</div>
           <div class="bridge-label bridge-label--right">Ponte do Terminal</div>
+          <div class="arena-keyboard-legend" aria-hidden="true">
+            <span class="arena-keyboard-legend__two">J2 · SETAS + L</span>
+            <span class="arena-keyboard-legend__one">J1 · WASD + Q</span>
+          </div>
         </section>
 
         <aside id="playerOnePanel" class="hand-panel hand-panel--one">
@@ -383,12 +391,16 @@
             <strong id="elixirValueOne">5.0</strong><span>⚡</span>
           </div>
           <div id="handOne" class="battle-hand"></div>
-          <div class="lane-control lane-control--one">
-            <button data-lane-player="1" data-lane="left">← Ponto rápido</button>
-            <strong id="laneLabelOne">Escolha uma carta e clique no mapa.</strong>
-            <button data-lane-player="1" data-lane="right">Ponto rápido →</button>
+          <div class="keyboard-control-card keyboard-control-card--one">
+            <div class="movement-pad" aria-label="Controles do Jogador 1">
+              <span></span><kbd>W</kbd><span></span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+            </div>
+            <div class="keyboard-control-card__copy">
+              <strong id="laneLabelOne">WASD move o marcador azul</strong>
+              <small><kbd>1 2 3 4</kbd> escolhem a carta</small>
+            </div>
           </div>
-          <button id="deployOneButton" class="deploy-button deploy-button--one">Jogar no ponto marcado <kbd>S</kbd></button>
+          <button id="deployOneButton" class="deploy-button deploy-button--one">Posicionar carta <kbd>Q</kbd></button>
         </aside>
       </main>
     </section>
